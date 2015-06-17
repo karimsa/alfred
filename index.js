@@ -94,6 +94,9 @@ module.exports = function () {
 			};
 		}(next));
 		
+		// we only want strings as our data
+		data = String(data);
+		
 		// ignore data packets that begin with a null byte
 		// -> pass it off as output
 		if (data[0] === '\0') return next(null, data.substr(1));
@@ -123,7 +126,7 @@ module.exports = function () {
 			// we do two 'confidence' checks to make sure the
 			// input isn't some random thing we are not prepared to
 			// encounter
-			if ((classifications[0].value <= 1 / classifications.length) || ((classifications[0].value - classifications[1].value) < 0.2)) {
+			if (classifications[0].value <= 1 / classifications.length) {
 				// swap out data for 'default', to handle
 				// the unrecognized data input
 				// ...
