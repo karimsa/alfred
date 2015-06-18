@@ -20,7 +20,82 @@ var es = require('event-stream'),
 			return fn.apply(ctx, arguments) || ctx;
 		};
 	},
-
+	stemmer = {
+		stem: natural.PorterStemmer.stem.bind(natural.PorterStemmer),
+		tokenize: natural.PorterStemmer.tokenizeAndStem.bind(natural.PorterStemmer),
+		clean: function (str, filter) {
+			// filter isn't required, just allow
+			// everything if none is given
+			filter = filter || function () {
+				return true;
+			};
+			
+			// tokenize and stem the way we like to do it
+			return str
+					// clean up any punctuation
+					.replace(/[\.,]+/g, '')
+					
+					// split by a space rather than the
+					// traditional aggressive '\W'
+					.split(/\s+/g)
+					
+					// individually stem every word
+					.map(function (word, index) {
+						var original = word;
+						if (filter(word)) word = stemmer.stem(word);
+						
+						// create object to maintain original
+						return {
+							original: original,
+							
+							toString: function () {
+								return word;
+							},
+							
+							valueOf: function () {
+								return word;
+							}
+						};
+					})
+					
+					// filter all stopwords
+					.filter(function (word) {
+						return natural.stopwords.indexOf(String(word)) === -1;
+					});
+		}
+	},
+	
+	/**
+	 * THE TRANSFORMS.
+	 * Built-in transforms to parse out things like
+	 * variables and apply filters.
+	 */
+	transforms = [
+		// VARIABLE TRANSFORM.
+		// parse the respective variables out of the input
+		// and into the data object
+		function (data, next) {
+			var prompt = stemmer.clean(data.prompt, function (word) {
+					return word[0] !== '$';
+				}),
+				input = stemmer.clean(data.input);
+			
+			for (var i = 0; i < prompt.length; i += 1) {
+				if (String(prompt[i])[0] === '$') {
+					data.data[String(prompt[i]).substr(1)] = input[0].original;
+				} else input = input.slice(1);
+			}
+			
+			next(null, data);
+		},
+		
+		// FILTER TRANSFORM.
+		// apply the respective filters to every variable
+		function (data, next) {
+			next(null, data);
+		}
+	],
+	
 	/**
 	 * THE PROTOTYPE.
 	 */
@@ -69,7 +144,15 @@ var es = require('event-stream'),
 		 * @params {Function} transform - a map-stream function to apply.
 		 */
 		use: function ( transform ) {
-			this._transform = this._transform.pipe(es.map(transform));
+			this._tpipe = this._tpipe.pipe(es.map(transform));
+		},
+		
+		/**
+		 * pass a string down alfred as output
+		 * @params {String} output - the output to produce
+		 */
+		say: function ( output ) {
+			this.write('\0' + String(output));
 		}
 	};
 
@@ -211,9 +294,20 @@ module.exports = function () {
 	stream._commands = [];
 	stream._needsinput = false;
 	stream._classifier = new natural.LogisticRegressionClassifier();
-	stream._transform = es.map(function (data, next) {
-		next(null, data);
-	});
+	stream._transform = es.pause();
+	stream._tpipe = stream._transform;
+	
+	// built-in filters
+	stream._filters = {
+		'string': String,
+		'float': parseFloat,
+		'int': function (data) {
+			return parseInt(data, 10);
+		}
+	};
+	
+	// apply all transforms in order
+	for (var transform of transforms) stream.use(transform);
 	
 	// return the final stream
 	return stream;

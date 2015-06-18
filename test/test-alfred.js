@@ -58,3 +58,25 @@ describe('test simple hello world command', () => {
 		});
 	});
 });
+
+// test variables
+describe('test out variables', function () {
+	describe('simple eol variable', function () {
+		it('should grab the rest of the string', function (done) {
+			alfred.add('hello, $who.', function (input, data) {
+				data.should.be.eql({
+					who: 'alfred'
+				});
+				
+				this.say('hello, master.');
+			});
+			
+			alfred.on('data', function (chunk) {
+				chunk.should.equal('hello, master.');
+				done();
+			});
+			
+			alfred.write('hello, alfred.');
+		});
+	});
+});
