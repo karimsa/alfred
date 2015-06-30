@@ -93,16 +93,19 @@ describe('test large command corpus', function () {
                 return false;
             },
             tstart;
-        
+
         // add test command
         alfred.add('hello', function () {
             (Date.now() - tstart).should.be.below(1000);
             done();
         });
-        
+
         // add 100 random commands
-        while (ctr --) alfred.add(randomstring.generate(), noop);
-        
+        while (ctr) {
+            ctr -= 1;
+            alfred.add(randomstring.generate(), noop);
+        }
+
         // start test
         tstart = Date.now();
         alfred.write('hello');
