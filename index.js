@@ -118,12 +118,23 @@ var es = require('event-stream'),
             prompts = (prompts instanceof Array ? prompts : [prompts]).filter(function (prompt) {
                 return prompt && typeof prompt === 'string';
             });
+            
+            // create a list of used stems
+            var stemlist = [];
+            for (var prompt of prompts) {
+                stemlist = stemlist.concat(stemmer.clean(prompt));
+            }
 
             // get the type of the handler that will be used
             // for these prompts, and create the respective command
             // object
             var n = this._commands.push({
                 prompts: prompts,
+                stems: stemlist.map(function (word) {
+                    return String(word);
+                }).filter(function (elm, index, self) {
+                    return self.indexOf(elm) === index;
+                }),
                 handler: handler,
                 htype: handler.constructor.name === 'GeneratorFunction' ? 'generator' : 'function',
 
@@ -137,13 +148,11 @@ var es = require('event-stream'),
             // both steps of command execution
             for (var prompt of prompts) {
                 this._commands[n].classifier.addDocument(prompt, prompt);
-                this._classifier.addDocument(prompt, String(n));
             }
 
             // re-train the alfred classifier and the command's
             // inner classifier
             this._commands[n].classifier.train();
-            this._classifier.train();
         },
 
         /**
@@ -209,9 +218,31 @@ module.exports = function () {
         }
 
         if (!stream._needsinput) {
+            // using one classifier with all the commands is too
+            // slow because of the nature of logistic regression, so
+            // we build a new one every time
+            var classifier = new natural.LogisticRegressionClassifier(),
+                cleanlist = stemmer.clean(data).map(function (word) {
+                    return String(word);
+                });
+            
+            // add only relevant commands
+            for (var stem of cleanlist) {
+                for (var i = 0; i < stream._commands.length; i += 1) {
+                    if (stream._commands[i].stems.indexOf(stem) !== -1) {
+                        for (var prompt of stream._commands[i].prompts) {
+                            classifier.addDocument(prompt, String(i));
+                        }
+                    }
+                }
+            }
+            
+            // train the classifier
+            classifier.train();
+            
             // identify the best command handler which will then
             // handle this data packet
-            var classifications = stream._classifier.getClassifications(data);
+            var classifications = classifier.getClassifications(data);
 
             // add an empty classification in case
             // no commands have been defined yet
@@ -320,7 +351,6 @@ module.exports = function () {
     stream._input.pause();
     stream._commands = [];
     stream._needsinput = false;
-    stream._classifier = new natural.LogisticRegressionClassifier();
     stream._transform = es.pause();
     stream._tpipe = stream._transform;
 
