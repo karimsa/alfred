@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+- 0.12
+deploy:
+  provider: npm
+  email: k4rim.sa@gmail.com
+  api_key:
+    secure: mX/iRp5F4psZ/+OFrKnco5sbNswzoAbGQ0BOWqAwKEfJbY+mSowC/SpllZ5m7lYcMndt0ZPLNciZ9ownHv+iCsBiAx0nzLx3K04cbKGtF7YoQBAujVmkyTVVyPqm5kwiPV65cVmJBTE/r0UDBg+J1Cz7T7EUeVT9Tppq7dOSStquLhHUuiTkV7Y72mSyQUBtwOWCPJY8s8oTsrdY9MZ8AuBzxKF7t87/nrhrBlLl8e34fqlfue5uugYXjiO0bIS1gyW4JrEzOduv1cC3uctJmXBugygb6JaDUhNZEby3byFLIt17/w+m9PV+3D8H2d6g2lskIHSZEikivjA4YcNoZxKLy3prQ9CrsUmqfIYO4f5t3j1TPyILykMwgx1G6e0Her96+VDVXU4WdguRQ7/S5Ah1h+0aiQ3fjWb8Rqgyro2JK4TlIthu0bxnFUm7kkmQxJf87Brl2TmHOyx/xFO+6yjQScsWH9ylw/pxpX/+5RBMQG3kRMdGcg7qTFrYdAA+8Jix+NxhVnR3vRcsT2yDCT2AEQ74L1e7734bR4XFSKMZsb1rPT0+nz7ikJLuhUk5NUPn1FrcmqDxKKLdQzTSEW9Ys88h/UMOWSkQvC3iw00JU3miIFfKz5zglQAO+DXJTEu0v08hyra3gY19mQAv17fUqzyGHI1g5CqGEnzVyBo=
+  on:
+    tags: true
+    repo: karimsa/alfred
