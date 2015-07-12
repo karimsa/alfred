@@ -1,12 +1,14 @@
-# alfred v2
+# alfred2
 
 a natural language interface for programs.
+
+[![NPM](https://nodei.co/npm/alfred2.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/alfred2/)
 
 ## usage
 
 ```
 // create a new alfred instance
-var alfred = require ( 'alfred' )();
+var alfred = require ( 'alfred2' )();
 
 // use it like a stream
 process.stdin.pipe(alfred);
