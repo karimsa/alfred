@@ -1,7 +1,7 @@
 /**
  * index.js - alfred
  * a natural language interfacing tool.
- * 
+ *
  * Licensed under GPLv3.
  * Copyright (C) 2015 Karim Alibhai.
  **/
@@ -10,7 +10,8 @@
 
 var es = require('event-stream'),
     natural = require('natural'),
-    EventEmitter = require('eventemitter2').EventEmitter2,
+    pennyworth = require('pennyworth'),
+    flatten = require('underscore').flatten,
 
     /**
      * THE HELPERS.
@@ -43,7 +44,7 @@ var es = require('event-stream'),
             .map(function (word, index) {
                 var original = word;
 
-                // if filter allows it, then 
+                // if filter allows it, then
                 // stemmify
                 if (filter(word)) {
                     word = stemmer.stem(word);
@@ -76,32 +77,24 @@ var es = require('event-stream'),
      * variables and apply filters.
      */
     transforms = [
-        // VARIABLE TRANSFORM.
-        // parse the respective variables out of the input
-        // and into the data object
         function (data, next) {
-            var prompt = stemmer.clean(data.prompt, function (word) {
-                    return word[0] !== '$';
-                }),
-                input = stemmer.clean(data.input);
+            data.data =
+              // create a template with pennyworth
+              pennyworth.template(data.raw)
 
-            for (var i = 0; i < prompt.length; i += 1) {
-                if (String(prompt[i])[0] === '$') {
-                    data.data[String(prompt[i]).substr(1)] = input[0].original;
-                } else {
-                    input = input.slice(1);
-                }
-            }
+              // process the input through template
+              (data.input);
 
-            next(null, data);
-        },
-
-        // FILTER TRANSFORM.
-        // apply the respective filters to every variable
-        function (data, next) {
+            // continue with the data packet
             next(null, data);
         }
     ],
+
+    /**
+     * THE COMMANDS.
+     * Built-in helper commands.
+     **/
+    commands = {},
 
     /**
      * THE PROTOTYPE.
@@ -109,21 +102,26 @@ var es = require('event-stream'),
     alfred = {
         /**
          * adds a new command handler.
-         * @param {String|Array} prompts - a single string or an array of strings of alfred commands.
-         * @param {Function|Generator} handler - a function or ES6 generator to handle the command. 
+         * @param {String} prompt - a single string as a pennyworth template.
+         * @param {Function|Generator} handler - a function or ES6 generator to handle the command.
          **/
-        add: function (prompts, handler) {
-            // string is permitted, but we want to work with
-            // an array of strings at the end of the day.
-            prompts = (prompts instanceof Array ? prompts : [prompts]).filter(function (prompt) {
-                return prompt && typeof prompt === 'string';
-            });
+        add: function (prompt, handler) {
+            // we don't want an array
+            if (prompt instanceof Array) return console.warn('DEPRECATED: use a pennyworth string.');
 
             // get the type of the handler that will be used
             // for these prompts, and create the respective command
             // object
             var n = this._commands.push({
-                prompts: prompts,
+                // let pennyworth process it, and use the flattened
+                // prompts as the alfred prompts
+                prompts: pennyworth.flatten(
+                  pennyworth.parse(pennyworth.lex(prompt)).map(function (array) {
+                    return flatten(array);
+                  })
+                ),
+
+                raw: prompt,
                 handler: handler,
                 htype: handler.constructor.name === 'GeneratorFunction' ? 'generator' : 'function',
 
@@ -134,13 +132,13 @@ var es = require('event-stream'),
 
             // create a list of used stems
             var stemlist = [];
-            for (var prompt of prompts) {
-                stemlist = stemlist.concat(stemmer.clean(prompt));
+            for (var aPrompt of this._commands[n].prompts) {
+                stemlist = stemlist.concat(stemmer.clean(aPrompt));
 
                 // prepare both the inner classifier as well as
                 // alfred's general classifier to be prepared for
                 // both steps of command execution
-                this._commands[n].classifier.addDocument(prompt, prompt);
+                this._commands[n].classifier.addDocument(aPrompt, aPrompt);
             }
 
             // add cleaned stem list
@@ -274,10 +272,9 @@ module.exports = function () {
             stream._transform.once('data', function (transformed) {
                 if (command.htype === 'generator') {
                     // grab the handler for the generator
-                    var handler = command.handler.apply(stream, [prompt, transformed.data]),
+                    var handler = command.handler.call(stream, transformed.data),
 
-                        // fire off the handler to run until it yields
-                        // a prompt
+                        // fire off the handler to run until it yields a prompt
                         tmp = handler.next();
 
                     // continue onwards
@@ -316,7 +313,7 @@ module.exports = function () {
                     iterate();
                 } else {
                     // simply execute the function
-                    var output = command.handler.apply(stream, [prompt, transformed.data]);
+                    var output = command.handler.call(stream, transformed.data);
 
                     // use any output as alfred's output
                     if (output) {
@@ -330,6 +327,7 @@ module.exports = function () {
                 }
             }).write({
                 prompt: prompt,
+                raw: command.raw,
                 input: data,
                 data: {}
             });
@@ -366,6 +364,13 @@ module.exports = function () {
     // apply all transforms in order
     for (var transform of transforms) {
         stream.use(transform);
+    }
+
+    // add all commands
+    for (var command in commands) {
+      if (commands.hasOwnProperty(command)) {
+        stream.add(command, commands[command]);
+      }
     }
 
     // return the final stream
