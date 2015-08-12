@@ -9,8 +9,9 @@
   },
   "dependencies": {
     "event-stream": "^3.3.1",
-    "eventemitter2": "^0.4.14",
-    "natural": "^0.2.1"
+    "natural": "^0.2.1",
+    "pennyworth": "^0.0.3",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
