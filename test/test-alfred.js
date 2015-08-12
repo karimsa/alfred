@@ -1,7 +1,7 @@
 /**
  * test/test-alfred.js - alfred
  * some unit tests for alfred.
- * 
+ *
  * Licensed under GPLv3.
  * Copyright (C) 2015 Karim Alibhai.
  */
@@ -9,13 +9,15 @@
 
 'use strict';
 
-var should = require('should'),
-    mocha = require('mocha'),
-    alfred;
+import 'should';
+import 'mocha';
+
+var alfred;
 
 // use a new instance of alfred each time
-beforeEach(function () {
-    alfred = require('../')();
+beforeEach((done) => {
+  alfred = require('../')();
+  done();
 });
 
 // simple hello world test
@@ -64,9 +66,9 @@ describe('test simple hello world command', () => {
 
 // test variables
 describe('test out variables', function () {
-    describe('simple eol variable', function () {
+    describe('simple variable', function () {
         it('should grab the rest of the string', function (done) {
-            alfred.add('hello, $who.', function (input, data) {
+            alfred.add('hello, $who.', function (data) {
                 data.should.be.eql({
                     who: 'alfred'
                 });
