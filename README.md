@@ -1,4 +1,4 @@
-# alfred2
+# alfred2 [![Build Status](https://travis-ci.org/karimsa/alfred.svg?branch=master)](https://travis-ci.org/karimsa/alfred)
 
 a natural language interface for programs.
 
