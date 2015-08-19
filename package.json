@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "event-stream": "^3.3.1",
-    "natural": "^0.2.1",
+    "natural": "git+https://github.com/karimsa/natural.git",
     "pennyworth": "^0.0.5",
     "underscore": "^1.8.3"
   },

@@ -12,6 +12,7 @@ var es = require('event-stream'),
     natural = require('natural'),
     pennyworth = require('pennyworth'),
     flatten = require('underscore').flatten,
+    similar = require('./similar'),
 
     /**
      * THE HELPERS.
@@ -69,6 +70,56 @@ var es = require('event-stream'),
                 return natural.stopwords.indexOf(String(word)) === -1 && natural.stopwords.indexOf(word.original) === -1;
             });
         }
+    },
+
+    getClassifier = function (stream, data, ClassifierClass, repeat) {
+      // we try and use the naive bayes classifier first
+      ClassifierClass = ClassifierClass || natural.BayesClassifier;
+      repeat = !! repeat;
+
+      // using one classifier with all the commands is too
+      // slow because of the nature of logistic regression, so
+      // we build a new one every time
+      var classifier = new ClassifierClass(),
+          cleanlist = stemmer.clean(data).map(function (word) {
+              return String(word);
+          });
+
+      // add only relevant commands
+      for (var i = 0; i < stream._commands.length; i += 1) {
+        if (similar(stream._commands[i].raw, data)) {
+          for (var cmdprompt of stream._commands[i].prompts) {
+              classifier.addDocument(cmdprompt, String(i));
+          }
+        }
+      }
+
+      // train the classifier
+      classifier.train();
+
+      // identify the best command handler which will then
+      // handle this data packet
+      var classifications = classifier.getClassifications(data);
+
+      // add an empty classification in case
+      // no commands have been defined yet
+      classifications.push({
+          label: null,
+          value: 0
+      });
+
+      classifications.push({
+          label: null,
+          value: -1
+      });
+
+      // try the LogisticRegressionClassifier if need be
+      if (repeat && (classifications[0].value - classifications[1].value) <= 0) {
+          return getClassifier(stream, data, natural.LogisticRegressionClassifier, false);
+      }
+
+      // return with it
+      return classifier;
     },
 
     /**
@@ -216,27 +267,7 @@ module.exports = function () {
         }
 
         if (!stream._needsinput) {
-            // using one classifier with all the commands is too
-            // slow because of the nature of logistic regression, so
-            // we build a new one every time
-            var classifier = new natural.LogisticRegressionClassifier(),
-                cleanlist = stemmer.clean(data).map(function (word) {
-                    return String(word);
-                });
-
-            // add only relevant commands
-            for (var stem of cleanlist) {
-                for (var i = 0; i < stream._commands.length; i += 1) {
-                    if (stream._commands[i].stems.indexOf(stem) !== -1) {
-                        for (var cmdprompt of stream._commands[i].prompts) {
-                            classifier.addDocument(cmdprompt, String(i));
-                        }
-                    }
-                }
-            }
-
-            // train the classifier
-            classifier.train();
+            var classifier = getClassifier(stream, data);
 
             // identify the best command handler which will then
             // handle this data packet
@@ -249,18 +280,31 @@ module.exports = function () {
                 value: 0
             });
 
-            // we do two 'confidence' checks to make sure the
-            // input isn't some random thing we are not prepared to
-            // encounter
-            if (classifications[0].value <= 1 / classifications.length) {
-                // swap out data for 'default', to handle
-                // the unrecognized data input
-                // ...
-                return next();
-            }
+            classifications.push({
+                label: null,
+                value: 0
+            });
 
             // grab the appropriate command object
             var command = stream._commands[parseInt(classifications[0].label, 10)];
+
+            // we swap out the command for a default handler if
+            // the confidence is low
+            if ((classifications[0].value - classifications[1].value) <= 0 || !command) {
+                command = {
+                  raw: '$input',
+
+                  classifier: {
+                    classify: function () {
+                      return null;
+                    }
+                  },
+
+                  handler: function (data) {
+                    stream.emit('default', data);
+                  }
+                };
+            }
 
             // now within the command object, re-classify our input
             // via the inner classifier to get a more appropriate prompt
