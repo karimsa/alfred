@@ -234,6 +234,19 @@ module.exports = function() {
                 }
             }
 
+            // replace classifier with polyfill if empty
+            if (classifier.docs.length === 0) {
+              classifier = {
+                train: function () {
+                  return false;
+                },
+
+                getClassifications: function () {
+                  return [];
+                }
+              };
+            }
+
             // train the classifier
             classifier.train();
 

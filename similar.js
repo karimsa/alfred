@@ -35,7 +35,7 @@ module.exports = function (stra, strb, getRatio) {
         ratio = matches / ln;
 
     //if (ln === 2 && ratio === 0.5) ratio -= 0.25;
-    if (ln === 1) ratio = +(stra === strb);
+    //if (ln === 1) ratio = +(stra === strb);
 
     return getRatio === true ? ratio : (ratio >= 0.5);
 };

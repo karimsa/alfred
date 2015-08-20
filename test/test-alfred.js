@@ -17,6 +17,11 @@ var alfred;
 // use a new instance of alfred each time
 beforeEach((done) => {
   alfred = require('../')();
+
+  alfred.on('default', function () {
+    throw new Error('command not caught.');
+  });
+
   done();
 });
 
