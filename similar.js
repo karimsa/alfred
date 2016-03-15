@@ -19,23 +19,17 @@ module.exports = function (stra, strb, getRatio) {
         strb = natural.PorterStemmer.tokenizeAndStem(strb);
     }
 
-    //console.log('%j vs. %j', stra, strb);
-
-    var x, y, matches = 0;
+    var x, y, matches = 0, target = 0.5 * stra.length;
 
     for (x = 0; x < stra.length; x += 1) {
         for (y = 0; y < strb.length; y += 1) {
             if (stra[x] === strb[y]) {
                 matches += 1;
+                
+                if (matches >= target) return getRatio ? (matches / stra.length) : true;
             }
         }
     }
 
-    var ln = Math.min(stra.length, strb.length),
-        ratio = matches / ln;
-
-    //if (ln === 2 && ratio === 0.5) ratio -= 0.25;
-    //if (ln === 1) ratio = +(stra === strb);
-
-    return getRatio === true ? ratio : (ratio >= 0.5);
+    return false;
 };
