@@ -17,18 +17,18 @@ var es = require('event-stream'),
     /**
      * THE HELPERS.
      */
-    wrap = function(fn, ctx) {
-        return function() {
+    wrap = function (fn, ctx) {
+        return function () {
             return fn.apply(ctx, arguments) || ctx;
         };
     },
     stemmer = {
         stem: natural.PorterStemmer.stem.bind(natural.PorterStemmer),
         tokenize: natural.PorterStemmer.tokenizeAndStem.bind(natural.PorterStemmer),
-        clean: function(str, filter) {
+        clean: function (str, filter) {
             // filter isn't required, just allow
             // everything if none is given
-            filter = filter || function() {
+            filter = filter || function () {
                 return true;
             };
 
@@ -42,7 +42,7 @@ var es = require('event-stream'),
             .split(/\s+/g)
 
             // individually stem every word
-            .map(function(word, index) {
+            .map(function (word, index) {
                 var original = word;
 
                 // if filter allows it, then
@@ -55,18 +55,18 @@ var es = require('event-stream'),
                 return {
                     original: original,
 
-                    toString: function() {
+                    toString: function () {
                         return word;
                     },
 
-                    valueOf: function() {
+                    valueOf: function () {
                         return word;
                     }
                 };
             })
 
             // filter all stopwords
-            .filter(function(word) {
+            .filter(function (word) {
                 return natural.stopwords.indexOf(String(word)) === -1 && natural.stopwords.indexOf(word.original) === -1;
             });
         }
@@ -78,7 +78,7 @@ var es = require('event-stream'),
      * variables and apply filters.
      */
     transforms = [
-        function(data, next) {
+        function (data, next) {
             data.data =
                 // create a template with pennyworth
                 pennyworth.template(data.raw)
@@ -106,9 +106,11 @@ var es = require('event-stream'),
          * @param {String} prompt - a single string as a pennyworth template.
          * @param {Function|Generator} handler - a function or ES6 generator to handle the command.
          **/
-        add: function(prompt, handler) {
+        add: function (prompt, handler) {
             // we don't want an array
-            if (prompt instanceof Array) return console.warn('DEPRECATED: use a pennyworth string.');
+            if (prompt instanceof Array) {
+                return console.warn('DEPRECATED: use a pennyworth string.');
+            }
 
             // get the type of the handler that will be used
             // for these prompts, and create the respective command
@@ -117,7 +119,7 @@ var es = require('event-stream'),
                 // let pennyworth process it, and use the flattened
                 // prompts as the alfred prompts
                 prompts: pennyworth.flatten(
-                    pennyworth.parse(pennyworth.lex(prompt)).map(function(array) {
+                    pennyworth.parse(pennyworth.lex(prompt)).map(function (array) {
                         return flatten(array);
                     })
                 ),
@@ -143,9 +145,9 @@ var es = require('event-stream'),
             }
 
             // add cleaned stem list
-            this._commands[n].stems = stemlist.map(function(word) {
+            this._commands[n].stems = stemlist.map(function (word) {
                 return String(word);
-            }).filter(function(elm, index, self) {
+            }).filter(function (elm, index, self) {
                 return self.indexOf(elm) === index;
             });
 
@@ -158,7 +160,7 @@ var es = require('event-stream'),
          * add a transform to the input processing stream
          * @params {Function} transform - a map-stream function to apply.
          */
-        use: function(transform) {
+        use: function (transform) {
             this._tpipe = this._tpipe.pipe(es.map(transform));
         },
 
@@ -166,7 +168,7 @@ var es = require('event-stream'),
          * pass a string down alfred as output
          * @params {String} output - the output to produce
          */
-        say: function(output) {
+        say: function (output) {
             this.write('\0' + String(output));
         }
     };
@@ -177,16 +179,16 @@ var es = require('event-stream'),
  * function call to allow for multiple instances of
  * alfred that have no inner relation.
  */
-module.exports = function() {
-    var stream = es.pause().pipe(es.map(function(data, next) {
+module.exports = function () {
+    var stream = es.pause().pipe(es.map(function (data, next) {
         // pause the stream, because we only want to handle
         // one piece of information at a time.
         stream.pause();
 
         // replace next with a stream resumer as well
         // so we don't forget to resume the stream
-        next = (function(then) {
-            return function(err, dat) {
+        next = (function (then) {
+            return function (err, dat) {
                 then(err, dat);
 
                 // only resume the stream if
@@ -221,7 +223,7 @@ module.exports = function() {
             // slow because of the nature of logistic regression, so
             // we build a new one every time
             var classifier = new natural.LogisticRegressionClassifier(),
-                cleanlist = stemmer.clean(data).map(function(word) {
+                cleanlist = stemmer.clean(data).map(function (word) {
                     return String(word);
                 });
 
@@ -236,15 +238,15 @@ module.exports = function() {
 
             // replace classifier with polyfill if empty
             if (classifier.docs.length === 0) {
-              classifier = {
-                train: function () {
-                  return false;
-                },
+                classifier = {
+                    train: function () {
+                        return false;
+                    },
 
-                getClassifications: function () {
-                  return [];
-                }
-              };
+                    getClassifications: function () {
+                        return [];
+                    }
+                };
             }
 
             // train the classifier
@@ -276,12 +278,12 @@ module.exports = function() {
                     raw: '$input',
 
                     classifier: {
-                        classify: function() {
+                        classify: function () {
                             return null;
                         }
                     },
 
-                    handler: function(data) {
+                    handler: function (data) {
                         stream.emit('default', data);
                     }
                 };
@@ -294,7 +296,7 @@ module.exports = function() {
 
             // pass an object containing relevant data through our
             // transform, and use its final output as our input
-            stream._transform.once('data', function(transformed) {
+            stream._transform.once('data', function (transformed) {
                 if (command.htype === 'generator') {
                     // grab the handler for the generator
                     var handler = command.handler.call(stream, transformed.data),
@@ -311,10 +313,10 @@ module.exports = function() {
                     }
 
                     // iterate until we can't
-                    var iterate = function() {
+                    var iterate = function () {
                         if (!tmp.done) {
                             // get input
-                            stream._input.once('data', function(input) {
+                            stream._input.once('data', function (input) {
                                 stream._input.pause();
 
                                 // provide input on return
@@ -381,7 +383,7 @@ module.exports = function() {
     stream._filters = {
         'string': String,
         'float': parseFloat,
-        'int': function(data) {
+        'int': function (data) {
             return parseInt(data, 10);
         }
     };
