@@ -9,20 +9,20 @@
 
 'use strict';
 
-import 'should';
-import 'mocha';
+require('should');
+require('mocha');
 
 var alfred;
 
 // use a new instance of alfred each time
-beforeEach((done) => {
-  alfred = require('../')();
+beforeEach(function (done) {
+    alfred = require('../')();
 
-  alfred.on('default', function () {
-    throw new Error('command not caught.');
-  });
+    alfred.on('default', function () {
+        throw new Error('command not caught.');
+    });
 
-  done();
+    done();
 });
 
 // simple hello world test
