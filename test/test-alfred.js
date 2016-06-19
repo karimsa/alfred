@@ -12,11 +12,12 @@
 require('should');
 require('mocha');
 
+const createAlfred = require('../');
 var alfred;
 
 // use a new instance of alfred each time
-beforeEach(function (done) {
-    alfred = require('../')();
+beforeEach((done) => {
+    alfred = createAlfred();
 
     alfred.on('default', function () {
         throw new Error('command not caught.');
@@ -78,7 +79,7 @@ describe('test out variables', function () {
                     who: 'alfred'
                 });
 
-                this.say('hello, master.');
+                return 'hello, master.';
             });
 
             alfred.on('data', function (chunk) {

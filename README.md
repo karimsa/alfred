@@ -4,14 +4,31 @@ a natural language interface for programs.
 
 [![NPM](https://nodei.co/npm/alfred2.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/alfred2/)
 
-## usage
+## Why '2'?
 
-```
+alfred "1" was never actually made public but I used it in [Detective](https://github.com/vvbka/Detective) and a few
+other private projects. Afterwards, there were a few features I desperately wanted to add in and since 'alfred' was
+already a package on npm, I decided to go with 'alfred2'.
+
+## Usage
+
+This module will expose a function that will create a new alfred stream for usage. The purpose of having a stream is
+to realize that alfred itself is simply a middleware between your inputs and your code. Due to this, you must first link
+alfred to some output by piping it out and bring in some line of output (from a stream or whatever else you'd like to use).
+
+For the purposes of this README, we will use stdin as alfred's input and stdout as alfred's output. This will create a sort
+of REPL with alfred.
+
+***For example:***
+
+```javascript
 // create a new alfred instance
-var alfred = require ( 'alfred2' )();
+const alfred = require ( 'alfred2' )();
 
-// use it like a stream
+// push stdin into alfred
 process.stdin.pipe(alfred);
+
+// push alfred into stdout
 alfred.pipe(process.stdout);
 
 // what gets written to alfred is the natural
@@ -19,6 +36,10 @@ alfred.pipe(process.stdout);
 // what alfred wants to say
 ```
 
-## license
+### Registering a prompt with alfred
 
-GPLv3.
+alfred uses [pennyworth](https://github.com/karimsa/pennyworth) as its prompt-handling library. Therefore, please see
+
+## License
+
+Licensed under GPL-3.0. See [LICENSE](LICENSE).

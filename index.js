@@ -12,7 +12,7 @@ var es = require('event-stream'),
     natural = require('natural'),
     pennyworth = require('pennyworth'),
     flatten = require('underscore').flatten,
-    similar = require('./similar'),
+    similar = require('./lib/similar'),
 
     /**
      * THE HELPERS.
@@ -79,15 +79,14 @@ var es = require('event-stream'),
      */
     transforms = [
         function (data, next) {
-            data.data =
-                // create a template with pennyworth
-                pennyworth.template(data.raw)
+            // create a template with pennyworth
+            pennyworth.template(data.raw)(data.input).then(function (res) {
+                // swap data out with processed data
+                data.data = res;
 
-            // process the input through template
-            (data.input);
-
-            // continue with the data packet
-            next(null, data);
+                // continue with data
+                next(null, data);
+            }, next);
         }
     ],
 
@@ -296,7 +295,7 @@ module.exports = function () {
 
             // pass an object containing relevant data through our
             // transform, and use its final output as our input
-            stream._transform.once('data', function (transformed) {
+            stream._tpipe.once('data', function (transformed) {
                 if (command.htype === 'generator') {
                     // grab the handler for the generator
                     var handler = command.handler.call(stream, transformed.data),
@@ -352,7 +351,9 @@ module.exports = function () {
                         next();
                     }
                 }
-            }).write({
+            });
+
+            stream._transform.write({
                 prompt: prompt,
                 raw: command.raw,
                 input: data,
