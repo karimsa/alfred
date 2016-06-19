@@ -39,6 +39,16 @@ alfred.pipe(process.stdout);
 ### Registering a prompt with alfred
 
 alfred uses [pennyworth](https://github.com/karimsa/pennyworth) as its prompt-handling library. Therefore, please see
+the pennyworth docs regarding how to format prompts.
+
+To register the prompt with an action, use `alfred.add()` with either a function or a generator. For instance, to create
+a simple hello world prompt that replies with a hello, do:
+
+```javascript
+alfred.add('hi, there.', function* () {
+    const age = parseInt(yield 'What is your age?' , 10);
+});
+```
 
 ## License
 
