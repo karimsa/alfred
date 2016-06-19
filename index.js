@@ -10,7 +10,6 @@
 
 var es = require('event-stream'),
     natural = require('natural'),
-    pennyworth = require('pennyworth'),
     flatten = require('underscore').flatten,
     similar = require('./lib/similar'),
 
@@ -80,7 +79,7 @@ var es = require('event-stream'),
     transforms = [
         function (data, next) {
             // create a template with pennyworth
-            pennyworth.template(data.raw)(data.input).then(function (res) {
+            this.pennyworth.template(data.raw)(data.input).then(function (res) {
                 // swap data out with processed data
                 data.data = res;
 
@@ -117,8 +116,8 @@ var es = require('event-stream'),
             var n = this._commands.push({
                 // let pennyworth process it, and use the flattened
                 // prompts as the alfred prompts
-                prompts: pennyworth.flatten(
-                    pennyworth.parse(pennyworth.lex(prompt)).map(function (array) {
+                prompts: this.pennyworth.flatten(
+                    this.pennyworth.parse(this.pennyworth.lex(prompt)).map(function (array) {
                         return flatten(array);
                     })
                 ),
@@ -160,7 +159,7 @@ var es = require('event-stream'),
          * @params {Function} transform - a map-stream function to apply.
          */
         use: function (transform) {
-            this._tpipe = this._tpipe.pipe(es.map(transform));
+            this._tpipe = this._tpipe.pipe(es.map(transform.bind(this)));
         },
 
         /**
@@ -373,6 +372,7 @@ module.exports = function () {
     }
 
     // some needed properties
+    stream.pennyworth = require('pennyworth');
     stream._input = es.pause();
     stream._input.pause();
     stream._commands = [];
