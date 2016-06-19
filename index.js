@@ -227,8 +227,8 @@ module.exports = function () {
 
             // add only relevant commands
             for (var i = 0; i < stream._commands.length; i += 1) {
-                if (similar(stream._commands[i].raw, data)) {
-                    for (var cmdprompt of stream._commands[i].prompts) {
+                for (let cmdprompt of stream._commands[i].prompts) {
+                    if (similar(cmdprompt, data)) {
                         classifier.addDocument(cmdprompt, String(i));
                     }
                 }
